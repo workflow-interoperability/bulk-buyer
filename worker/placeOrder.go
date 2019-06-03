@@ -26,12 +26,6 @@ func PlaceOrderWorker(client worker.JobClient, job entities.Job) {
 		lib.FailJob(client, job)
 		return
 	}
-	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(payload)
-	if err != nil {
-		log.Println(err)
-		lib.FailJob(client, job)
-		return
-	}
 
 	// create blockchain IM instance
 	id := lib.GenerateXID()
@@ -105,10 +99,11 @@ func PlaceOrderWorker(client worker.JobClient, job entities.Job) {
 		}
 		switch structMsg["$class"].(string) {
 		case "org.sysu.wf.PIISCreatedEvent":
-			if ok, err := publishPIIS(structMsg["id"].(string), newIM, c); err != nil {
+			if ok, err := publishPIIS(structMsg["id"].(string), &newIM, c); err != nil {
 				lib.FailJob(client, job)
 				return
 			} else if ok {
+				payload["fromProcessInstanceID"].(map[string]string)["manufacturer"] = newIM.Payload.WorkflowRelevantData.To.ProcessInstanceID
 				finished = true
 				break
 			}
@@ -119,6 +114,13 @@ func PlaceOrderWorker(client worker.JobClient, job entities.Job) {
 			log.Println("Publish PIIS success")
 			break
 		}
+	}
+
+	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(payload)
+	if err != nil {
+		log.Println(err)
+		lib.FailJob(client, job)
+		return
 	}
 	request.Send()
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func publishPIIS(piisid string, IM types.IM, conn *websocket.Conn) (bool, error) {
+func publishPIIS(piisid string, IM *types.IM, conn *websocket.Conn) (bool, error) {
 	// get piis
 	processData, err := lib.GetPIIS("http://127.0.0.1:3000/api/PIIS/" + piisid)
 	if err != nil {
@@ -20,6 +20,7 @@ func publishPIIS(piisid string, IM types.IM, conn *websocket.Conn) (bool, error)
 	if !(processData.To.ProcessID == IM.Payload.WorkflowRelevantData.From.ProcessID && processData.To.ProcessInstanceID == IM.Payload.WorkflowRelevantData.From.ProcessInstanceID && processData.To.IESMID == IM.Payload.WorkflowRelevantData.From.IESMID) {
 		return false, nil
 	}
+	IM.Payload.WorkflowRelevantData.To.ProcessInstanceID = processData.From.ProcessInstanceID
 	// create piis
 	id := lib.GenerateXID()
 	newPIIS := types.PIIS{
