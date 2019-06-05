@@ -82,7 +82,7 @@ func SignOrderWorker(client worker.JobClient, job entities.Job) {
 				To: processData.Payload.WorkflowRelevantData.From,
 				SubscriberInformation: types.SubscriberInformation{
 					Roles: []string{},
-					ID:    "seller",
+					ID:    "manufacturer",
 				},
 			}
 			pPIIS := types.PublishPIIS{newPIIS}
