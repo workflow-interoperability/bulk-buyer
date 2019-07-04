@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
-	"os"
 	"strconv"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/workflow-interoperability/bulk-buyer/lib"
@@ -15,12 +13,12 @@ import (
 	"github.com/zeebe-io/zeebe/clients/go/worker"
 )
 
-// SignOrderWorker receive order
-func SignOrderWorker(client worker.JobClient, job entities.Job) {
+// ReceiveReportWorker receive report
+func ReceiveReportWorker(client worker.JobClient, job entities.Job) {
 	processID := "bulk-buyer"
-	iesmid := "3"
+	iesmid := "2"
 	jobKey := job.GetKey()
-	log.Println("Start sign order " + strconv.Itoa(int(jobKey)))
+	log.Println("Start receive report " + strconv.Itoa(int(jobKey)))
 	payload, err := job.GetVariablesAsMap()
 	if err != nil {
 		log.Println(err)
@@ -104,11 +102,5 @@ func SignOrderWorker(client worker.JobClient, job entities.Job) {
 			break
 		}
 	}
-	// record end time
-	stime := strconv.Itoa(int(time.Now().Unix()))
-	stime = payload["processInstanceID"].(string) + "," + stime + "\n"
-	f, _ := os.OpenFile("stop.txt", os.O_APPEND|os.O_WRONLY, 0600)
-	defer f.Close()
-	f.WriteString(stime)
 	request.Send()
 }

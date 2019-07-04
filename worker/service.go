@@ -14,7 +14,6 @@ func publishPIIS(piisid string, IM *types.IM, sub string, conn *websocket.Conn) 
 	// get piis
 	processData, err := lib.GetPIIS("http://127.0.0.1:3000/api/PIIS/" + piisid)
 	if err != nil {
-		log.Println(err)
 		return false, err
 	}
 	if !(processData.To.ProcessID == IM.Payload.WorkflowRelevantData.From.ProcessID && processData.To.ProcessInstanceID == IM.Payload.WorkflowRelevantData.From.ProcessInstanceID && processData.To.IESMID == IM.Payload.WorkflowRelevantData.From.IESMID) {

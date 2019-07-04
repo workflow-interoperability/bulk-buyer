@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"time"
+
 	"github.com/workflow-interoperability/bulk-buyer/worker"
 	"github.com/zeebe-io/zeebe/clients/go/zbc"
 )
@@ -20,9 +23,26 @@ func main() {
 		defer placeOrderWorker.Close()
 		placeOrderWorker.AwaitClose()
 	}()
-	signOrderWorker := client.NewJobWorker().JobType("signOrder").Handler(worker.SignOrderWorker).Open()
-	defer signOrderWorker.Close()
-	signOrderWorker.AwaitClose()
+	go func() {
+		receiveReportWorker := client.NewJobWorker().JobType("receiveReport").Handler(worker.ReceiveReportWorker).Open()
+		defer receiveReportWorker.Close()
+		receiveReportWorker.AwaitClose()
+	}()
+	go func() {
+		signOrderWorker := client.NewJobWorker().JobType("signOrder").Handler(worker.SignOrderWorker).Open()
+		defer signOrderWorker.Close()
+		signOrderWorker.AwaitClose()
+	}()
+	var data map[string]interface{}
+	for i := 0; i < 100; i++ {
+		request, err := client.NewCreateInstanceCommand().BPMNProcessId("bulk-buyer").LatestVersion().VariablesFromMap(data)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		request.Send()
+		time.Sleep(90 * time.Second)
+	}
 
 	<-stopChan
 }

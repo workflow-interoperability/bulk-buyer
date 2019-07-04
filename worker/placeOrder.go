@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/workflow-interoperability/bulk-buyer/lib"
@@ -20,20 +22,29 @@ func PlaceOrderWorker(client worker.JobClient, job entities.Job) {
 	jobKey := job.GetKey()
 	log.Println("Start place order " + strconv.Itoa(int(jobKey)))
 
+	// generate processid
+	id := lib.GenerateXID()
+
+	// record start time
+	stime := strconv.Itoa(int(time.Now().Unix()))
+	stime = id + "," + stime + "\n"
+	f, _ := os.OpenFile("start.txt", os.O_APPEND|os.O_WRONLY, 0600)
+	defer f.Close()
+	f.WriteString(stime)
+
+	// start
 	payload, err := job.GetVariablesAsMap()
 	if err != nil {
 		log.Println(err)
-		lib.FailJob(client, job)
-		return
+		payload = map[string]interface{}{}
 	}
-
+	payload["processInstanceID"] = id
 	// create blockchain IM instance
-	id := lib.GenerateXID()
-	aData, err := json.Marshal(&payload)
+	id = lib.GenerateXID()
+	aData, err := json.Marshal(payload)
 	if err != nil {
 		log.Println(err)
 		lib.FailJob(client, job)
-		return
 	}
 	newIM := types.IM{
 		ID: id,
@@ -100,9 +111,9 @@ func PlaceOrderWorker(client worker.JobClient, job entities.Job) {
 		switch structMsg["$class"].(string) {
 		case "org.sysu.wf.PIISCreatedEvent":
 			if ok, err := publishPIIS(structMsg["id"].(string), &newIM, "manufacturer", c); err != nil {
-				lib.FailJob(client, job)
-				return
+				continue
 			} else if ok {
+				payload["fromProcessInstanceID"] = map[string]string{}
 				payload["fromProcessInstanceID"].(map[string]string)["manufacturer"] = newIM.Payload.WorkflowRelevantData.To.ProcessInstanceID
 				finished = true
 				break
